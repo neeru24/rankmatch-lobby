@@ -67,7 +67,7 @@
             cursor: copy;
         }
          .chat-box {
-            height: 450px; /* Increased height */
+            height: 450px;
             background-color: #1e1e1e;
             border: 1px solid #444;
             border-radius: 8px;
@@ -132,6 +132,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         .voice-btn {
             padding: 8px 16px;
@@ -224,7 +226,27 @@
         .audio-container {
             display: none;
         }
+        .debug-info {
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            margin-top: 10px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .peer-id-display {
+            background: #444;
+            padding: 8px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: center;
+        }
     </style>
+    <!-- Include PeerJS library -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
     <div id="loader-overlay"><div class="loader-spinner"></div></div>
@@ -262,9 +284,13 @@
                     <button class="voice-btn leave" id="leave-voice" disabled>Leave Voice</button>
                     <button class="voice-btn" id="mute-mic" style="background-color: #6c757d;">Mute</button>
                 </div>
+                <div class="peer-id-display" id="peer-id-display" style="display: none;">
+                    Your Voice ID: <span id="my-peer-id"></span>
+                </div>
                 <div class="participants" id="voice-participants">
                     <!-- Participants will be added here dynamically -->
                 </div>
+                <div class="debug-info" id="debug-info"></div>
             </div>
             
             <!-- Hidden audio elements for remote streams -->
@@ -298,22 +324,24 @@
 
         let currentLobbyId = null;
         let unsubscribeFromLobby = null;
-        let unsubscribeFromSignaling = null;
         let matchmakingView, lobbyView, chatForm, messageInput, chatBox, loaderOverlay;
         const myPlayerId = "Player_" + Math.random().toString(36).substr(2, 5);
         
-        // Voice chat variables
+        // PeerJS variables
+        let peer = null;
         let localStream = null;
-        let peerConnection = null;
-        let dataChannel = null;
-        let remoteStreams = new Map();
+        let currentCall = null;
         let isInVoiceChat = false;
         let isMuted = false;
-        let audioContext = null;
-        let analyser = null;
-        
+
         function showLoader() { loaderOverlay.style.display = 'flex'; }
         function hideLoader() { loaderOverlay.style.display = 'none'; }
+
+        function debugLog(message) {
+            console.log(message);
+            const debugInfo = document.getElementById('debug-info');
+            debugInfo.innerHTML = message + '<br>' + debugInfo.innerHTML;
+        }
 
         async function handleInvite(invitedPlayerId) {
             showLoader();
@@ -345,14 +373,15 @@
             if (unsubscribeFromLobby) unsubscribeFromLobby();
             unsubscribeFromLobby = onSnapshot(doc(db, 'lobbies', lobbyId), (docSnap) => {
                 if (docSnap.exists()) {
-                    renderMessages(docSnap.data().messages || []);
+                    const data = docSnap.data();
+                    renderMessages(data.messages || []);
                     
-                    // Handle signaling messages
-                    const signalingData = docSnap.data().voiceSignaling || [];
+                    // Handle voice signaling
+                    const signalingData = data.voiceSignaling || [];
                     if (signalingData.length > 0) {
                         const lastMessage = signalingData[signalingData.length - 1];
                         if (lastMessage.sender !== myPlayerId) {
-                            handleSignalingMessage(lastMessage);
+                            handleVoiceSignaling(lastMessage);
                         }
                     }
                 } else { 
@@ -385,109 +414,162 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // Voice Chat Functions
+        // Voice Chat Functions using PeerJS
         async function joinVoiceChat() {
             try {
-                // Get user media (microphone)
+                debugLog("🎤 Starting voice chat...");
+                
+                // Get user media (microphone only)
                 localStream = await navigator.mediaDevices.getUserMedia({ 
                     audio: {
                         echoCancellation: true,
                         noiseSuppression: true,
                         autoGainControl: true
-                    } 
+                    },
+                    video: false
                 });
                 
-                // Create audio context for volume analysis
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioContext.createAnalyser();
-                const source = audioContext.createMediaStreamSource(localStream);
-                source.connect(analyser);
-                analyser.fftSize = 32;
-                
-                // Create peer connection
-                const configuration = {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ]
-                };
-                
-                peerConnection = new RTCPeerConnection(configuration);
-                
-                // Add local stream to connection
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
+                debugLog("✅ Microphone access granted");
+
+                // Initialize PeerJS with a random ID
+                const peerId = 'voice_' + Math.random().toString(36).substr(2, 8);
+                peer = new Peer(peerId, {
+                    debug: 3,
+                    config: {
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:stun1.l.google.com:19302' }
+                        ]
+                    }
                 });
-                
-                // Handle incoming tracks - FIXED: Properly handle remote audio
-                peerConnection.ontrack = (event) => {
-                    console.log('Received remote track:', event.track.kind);
-                    const remoteStream = event.streams[0];
-                    const remotePlayerId = `remote_${Date.now()}`;
+
+                peer.on('open', (id) => {
+                    debugLog(`✅ PeerJS connected with ID: ${id}`);
+                    document.getElementById('my-peer-id').textContent = id;
+                    document.getElementById('peer-id-display').style.display = 'block';
                     
-                    // Create audio element for remote stream
-                    const audioElement = document.createElement('audio');
-                    audioElement.id = `audio-${remotePlayerId}`;
-                    audioElement.autoplay = true;
-                    audioElement.controls = false;
-                    audioElement.style.display = 'none';
-                    audioElement.srcObject = remoteStream;
-                    
-                    document.getElementById('remote-audio-container').appendChild(audioElement);
-                    
-                    // Store remote stream
-                    remoteStreams.set(remotePlayerId, {
-                        stream: remoteStream,
-                        audioElement: audioElement
+                    // Share our peer ID with the other user
+                    sendVoiceSignaling({
+                        type: 'peer-id',
+                        peerId: id
                     });
-                    
-                    updateVoiceParticipants();
-                    
-                    // Start volume monitoring for remote stream
-                    startRemoteVolumeMonitoring(remoteStream, remotePlayerId);
-                };
-                
-                // Handle ICE candidates
-                peerConnection.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        sendSignalingMessage({ 
-                            type: 'ice-candidate', 
-                            candidate: event.candidate,
-                            sender: myPlayerId
-                        });
-                    }
-                };
-                
-                peerConnection.onconnectionstatechange = () => {
-                    console.log('Connection state:', peerConnection.connectionState);
-                    if (peerConnection.connectionState === 'connected') {
-                        console.log('WebRTC connection established!');
-                    }
-                };
-                
-                // Create and send offer
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                sendSignalingMessage({ 
-                    type: 'offer', 
-                    offer: offer,
-                    sender: myPlayerId
                 });
-                
+
+                peer.on('call', (call) => {
+                    debugLog(`📞 Incoming call from ${call.peer}`);
+                    
+                    // Answer the call with our local stream
+                    call.answer(localStream);
+                    
+                    call.on('stream', (remoteStream) => {
+                        debugLog("✅ Received remote audio stream");
+                        setupRemoteAudio(remoteStream);
+                    });
+
+                    call.on('close', () => {
+                        debugLog("❌ Call ended");
+                        handleCallEnded();
+                    });
+
+                    call.on('error', (err) => {
+                        debugLog(`❌ Call error: ${err}`);
+                    });
+
+                    currentCall = call;
+                });
+
+                peer.on('error', (err) => {
+                    debugLog(`❌ PeerJS error: ${err}`);
+                });
+
                 // Update UI
-                updateVoiceStatus(true);
                 isInVoiceChat = true;
+                updateVoiceStatus(true);
                 updateVoiceParticipants();
-                
-                // Start local volume monitoring
-                startLocalVolumeMonitoring();
-                
+
             } catch (error) {
                 console.error('Error joining voice chat:', error);
+                debugLog(`❌ Error: ${error.message}`);
                 alert('Failed to join voice chat. Please check your microphone permissions.');
             }
         }
-        
+
+        function handleVoiceSignaling(message) {
+            if (!peer || !isInVoiceChat) return;
+
+            switch (message.type) {
+                case 'peer-id':
+                    debugLog(`📨 Received peer ID: ${message.peerId}`);
+                    // Initiate call to the other user
+                    initiateCall(message.peerId);
+                    break;
+            }
+        }
+
+        function initiateCall(remotePeerId) {
+            if (!localStream) {
+                debugLog("❌ No local stream available");
+                return;
+            }
+
+            debugLog(`📞 Calling ${remotePeerId}...`);
+            const call = peer.call(remotePeerId, localStream);
+            
+            call.on('stream', (remoteStream) => {
+                debugLog("✅ Connected to remote audio stream");
+                setupRemoteAudio(remoteStream);
+            });
+
+            call.on('close', () => {
+                debugLog("❌ Call ended");
+                handleCallEnded();
+            });
+
+            call.on('error', (err) => {
+                debugLog(`❌ Call error: ${err}`);
+            });
+
+            currentCall = call;
+        }
+
+        function setupRemoteAudio(remoteStream) {
+            let remoteAudioElement = document.getElementById('remote-audio');
+            
+            if (!remoteAudioElement) {
+                remoteAudioElement = document.createElement('audio');
+                remoteAudioElement.id = 'remote-audio';
+                remoteAudioElement.autoplay = true;
+                remoteAudioElement.controls = false;
+                remoteAudioElement.style.display = 'none';
+                document.getElementById('remote-audio-container').appendChild(remoteAudioElement);
+            }
+            
+            remoteAudioElement.srcObject = remoteStream;
+            debugLog("🔊 Remote audio setup complete - you should hear the other user now!");
+            
+            updateVoiceParticipants();
+        }
+
+        function handleCallEnded() {
+            const remoteAudioElement = document.getElementById('remote-audio');
+            if (remoteAudioElement) {
+                remoteAudioElement.srcObject = null;
+            }
+            updateVoiceParticipants();
+        }
+
+        function sendVoiceSignaling(message) {
+            if (currentLobbyId) {
+                updateDoc(doc(db, 'lobbies', currentLobbyId), {
+                    voiceSignaling: arrayUnion({
+                        ...message,
+                        sender: myPlayerId,
+                        timestamp: new Date()
+                    })
+                });
+            }
+        }
+
         function toggleMute() {
             if (!localStream) return;
             
@@ -506,6 +588,7 @@
                     icon.classList.remove('active');
                     icon.classList.add('muted');
                 });
+                debugLog("🔇 Microphone muted");
             } else {
                 muteBtn.textContent = 'Mute';
                 muteBtn.style.backgroundColor = '#6c757d';
@@ -513,101 +596,39 @@
                     icon.classList.add('active');
                     icon.classList.remove('muted');
                 });
+                debugLog("🎤 Microphone unmuted");
             }
         }
         
         function leaveVoiceChat() {
+            debugLog("👋 Leaving voice chat");
+            
+            if (currentCall) {
+                currentCall.close();
+                currentCall = null;
+            }
+            
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
             }
             
-            if (peerConnection) {
-                peerConnection.close();
-                peerConnection = null;
-            }
-            
-            if (audioContext) {
-                audioContext.close();
-                audioContext = null;
-            }
-            
-            dataChannel = null;
-            remoteStreams.clear();
-            isInVoiceChat = false;
-            isMuted = false;
-            
             // Clean up audio elements
             document.getElementById('remote-audio-container').innerHTML = '';
+            document.getElementById('peer-id-display').style.display = 'none';
+            
+            isInVoiceChat = false;
+            isMuted = false;
             
             // Update UI
             updateVoiceStatus(false);
             document.getElementById('voice-participants').innerHTML = '';
-        }
-        
-        function sendSignalingMessage(message) {
-            if (currentLobbyId) {
-                updateDoc(doc(db, 'lobbies', currentLobbyId), {
-                    voiceSignaling: arrayUnion({
-                        ...message,
-                        timestamp: new Date()
-                    })
-                });
-            }
-        }
-        
-        async function handleSignalingMessage(message) {
-            if (!peerConnection && message.type === 'offer') {
-                await handleOffer(message);
-            } else if (peerConnection) {
-                switch (message.type) {
-                    case 'offer':
-                        await handleOffer(message);
-                        break;
-                    case 'answer':
-                        await handleAnswer(message);
-                        break;
-                    case 'ice-candidate':
-                        await handleIceCandidate(message);
-                        break;
-                }
-            }
-        }
-        
-        async function handleOffer(message) {
-            try {
-                if (!localStream) {
-                    await joinVoiceChat();
-                }
-                
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(message.offer));
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                
-                sendSignalingMessage({ 
-                    type: 'answer', 
-                    answer: answer,
-                    sender: myPlayerId
-                });
-            } catch (error) {
-                console.error('Error handling offer:', error);
-            }
-        }
-        
-        async function handleAnswer(message) {
-            try {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(message.answer));
-            } catch (error) {
-                console.error('Error handling answer:', error);
-            }
-        }
-        
-        async function handleIceCandidate(message) {
-            try {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(message.candidate));
-            } catch (error) {
-                console.error('Error handling ICE candidate:', error);
-            }
+            debugLog("✅ Voice chat left");
         }
         
         function updateVoiceStatus(connected) {
@@ -629,72 +650,6 @@
             }
         }
         
-        function startLocalVolumeMonitoring() {
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            
-            function checkVolume() {
-                if (!analyser) return;
-                
-                analyser.getByteFrequencyData(dataArray);
-                let sum = 0;
-                for (let i = 0; i < bufferLength; i++) {
-                    sum += dataArray[i];
-                }
-                const average = sum / bufferLength;
-                const volume = Math.min(average / 128, 1);
-                
-                // Update local volume indicator
-                const localVolumeIndicator = document.querySelector('.participant.local .volume-level');
-                if (localVolumeIndicator) {
-                    localVolumeIndicator.style.width = `${volume * 100}%`;
-                }
-                
-                if (isInVoiceChat) {
-                    requestAnimationFrame(checkVolume);
-                }
-            }
-            
-            checkVolume();
-        }
-        
-        function startRemoteVolumeMonitoring(remoteStream, playerId) {
-            const remoteAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const remoteAnalyser = remoteAudioContext.createAnalyser();
-            const remoteSource = remoteAudioContext.createMediaStreamSource(remoteStream);
-            remoteSource.connect(remoteAnalyser);
-            remoteAnalyser.fftSize = 32;
-            
-            const bufferLength = remoteAnalyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            
-            function checkRemoteVolume() {
-                if (!remoteAnalyser) return;
-                
-                remoteAnalyser.getByteFrequencyData(dataArray);
-                let sum = 0;
-                for (let i = 0; i < bufferLength; i++) {
-                    sum += dataArray[i];
-                }
-                const average = sum / bufferLength;
-                const volume = Math.min(average / 128, 1);
-                
-                // Update remote volume indicator
-                const remoteVolumeIndicator = document.querySelector(`.participant[data-id="${playerId}"] .volume-level`);
-                if (remoteVolumeIndicator) {
-                    remoteVolumeIndicator.style.width = `${volume * 100}%`;
-                }
-                
-                if (remoteStreams.has(playerId)) {
-                    requestAnimationFrame(checkRemoteVolume);
-                } else {
-                    remoteAudioContext.close();
-                }
-            }
-            
-            checkRemoteVolume();
-        }
-        
         function updateVoiceParticipants() {
             const participantsContainer = document.getElementById('voice-participants');
             participantsContainer.innerHTML = '';
@@ -705,22 +660,22 @@
             localParticipant.innerHTML = `
                 <div class="mic-icon local ${isMuted ? 'muted' : 'active'}"></div>
                 <div class="name">${myPlayerId} (You)</div>
-                <div class="volume-indicator"><div class="volume-level" style="width: 0%"></div></div>
+                <div class="volume-indicator"><div class="volume-level" style="width: ${isMuted ? '0' : '30'}%"></div></div>
             `;
             participantsContainer.appendChild(localParticipant);
             
-            // Add remote participants
-            remoteStreams.forEach((streamData, playerId) => {
+            // Add remote participant if connected
+            const remoteAudioElement = document.getElementById('remote-audio');
+            if (remoteAudioElement && remoteAudioElement.srcObject) {
                 const remoteParticipant = document.createElement('div');
                 remoteParticipant.className = 'participant remote';
-                remoteParticipant.setAttribute('data-id', playerId);
                 remoteParticipant.innerHTML = `
                     <div class="mic-icon active"></div>
                     <div class="name">Remote Speaker</div>
-                    <div class="volume-indicator"><div class="volume-level" style="width: 0%"></div></div>
+                    <div class="volume-indicator"><div class="volume-level" style="width: 50%"></div></div>
                 `;
                 participantsContainer.appendChild(remoteParticipant);
-            });
+            }
         }
         
         function router() {
