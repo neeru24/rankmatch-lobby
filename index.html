@@ -4,241 +4,522 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RankMatch Lobby</title>
-    <link rel="icon" href="rankmatch.png">
-
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
+    
     <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-purple: #b967ff;
+            --neon-green: #00ff9d;
+            --neon-red: #ff6b6b;
+            --bg-dark: #0a0a0f;
+            --bg-card: rgba(17, 25, 40, 0.75);
+            --bg-card-light: rgba(30, 41, 59, 0.5);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: rgba(148, 163, 184, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #1a1a1a;
-            color: #e0e0e0;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
             min-height: 100vh;
-        }
-        .container {
-            width: 100%;
-            max-width: 600px;
-            background-color: #2c2c2c;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-        }
-        h1, h2 {
-            text-align: center;
-            color: #ffffff;
-            border-bottom: 2px solid #444;
-            padding-bottom: 10px;
-            margin-top: 0;
-        }
-        .player-card {
-            background-color: #3a3a3a;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .player-card span { font-weight: bold; }
-        .invite-btn {
-            background: linear-gradient(45deg, #007bff, #0056b3);
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        #lobby-link-container {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #1a1a1a;
-            border: 1px dashed #555;
-            border-radius: 5px;
-            text-align: center;
-        }
-        #lobby-link {
-            font-family: monospace;
-            background-color: #444;
-            padding: 5px;
-            border-radius: 3px;
-            word-break: break-all;
-            cursor: copy;
-        }
-         .chat-box {
-            height: 450px;
-            background-color: #1e1e1e;
-            border: 1px solid #444;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            padding: 10px;
-            overflow-y: auto;
             display: flex;
             flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 243, 255, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(185, 103, 255, 0.05) 0%, transparent 20%);
         }
-        .message {
-            padding: 8px 12px; border-radius: 18px; margin-bottom: 8px; max-width: 75%;
-        }
-        .message.sent {
-            background-color: #007bff; color: white; align-self: flex-end;
-        }
-        .message.received {
-            background-color: #4a4a4a; color: #e0e0e0; align-self: flex-start;
-        }
-        .message .sender {
-            font-size: 0.8em; font-weight: bold; display: block; margin-bottom: 3px;
-        }
-        .chat-input-form { display: flex; }
-        .chat-input-form input {
-            flex-grow: 1; padding: 12px; border: 1px solid #444; border-radius: 20px 0 0 20px; background-color: #3a3a3a; color: #e0e0e0; outline: none;
-        }
-        .chat-input-form button {
-            padding: 12px 20px; border: none; background: #28a745; color: white; cursor: pointer; border-radius: 0 20px 20px 0;
-        }
-        #leave-btn {
-            display: block;
+
+        .container {
             width: 100%;
-            padding: 10px 15px;
-            margin-top: 15px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .neon-text {
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 700;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-top: 10px;
+        }
+
+        .glass-panel {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-neon {
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            color: white;
             border: none;
-            border-radius: 50px;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+
+        .btn-neon:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 243, 255, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--neon-blue);
+        }
+
+        .btn-danger {
+            background: rgba(220, 53, 69, 0.2);
+            color: var(--neon-red);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+
+        .btn-danger:hover {
+            background: rgba(220, 53, 69, 0.3);
+            border-color: rgba(220, 53, 69, 0.5);
+        }
+
+        /* Matchmaking View */
+        #matchmaking-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .players-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .player-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .player-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            border-color: var(--neon-blue);
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .player-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
             font-weight: bold;
-            cursor: pointer;
-            background-color: #dc3545;
+            font-size: 1.2rem;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
         }
-        #loader-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); display: none;
-            justify-content: center; align-items: center; z-index: 1000;
+
+        .player-details h3 {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 1.3rem;
         }
-        .loader-spinner {
-            border: 8px solid #f3f3f3; border-top: 8px solid #3498db; border-radius: 50%;
-            width: 60px; height: 60px; animation: spin 1s linear infinite;
+
+        .player-details p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* Voice Chat Styles */
-        .voice-chat-container {
-            background-color: #1e1e1e;
-            border: 1px solid #444;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
+
+        .game-icon {
+            color: var(--neon-blue);
         }
-        .voice-controls {
+
+        .rank-badge {
+            background: rgba(0, 255, 157, 0.1);
+            color: var(--neon-green);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-left: 10px;
+        }
+
+        .role-badge {
+            background: rgba(185, 103, 255, 0.1);
+            color: var(--neon-purple);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-left: 10px;
+        }
+
+        /* Lobby View */
+        #lobby-view {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .lobby-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
-            flex-wrap: wrap;
+        }
+
+        .lobby-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .lobby-id {
+            background: var(--bg-card-light);
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .lobby-controls {
+            display: flex;
             gap: 10px;
         }
-        .voice-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 20px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
+
+        /* Voice Chat */
+        .voice-chat-container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
         }
-        .voice-btn.join {
-            background-color: #28a745;
+
+        .voice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
         }
-        .voice-btn.leave {
-            background-color: #dc3545;
-        }
-        .voice-btn:hover {
-            transform: scale(1.05);
-        }
-        .voice-btn:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-            transform: none;
-        }
+
         .voice-status {
             display: flex;
             align-items: center;
             gap: 10px;
         }
+
         .status-indicator {
             width: 12px;
             height: 12px;
             border-radius: 50%;
             background-color: #dc3545;
         }
+
         .status-indicator.connected {
-            background-color: #28a745;
+            background-color: var(--neon-green);
             animation: pulse 1.5s infinite;
         }
+
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
-        .participants {
+
+        .voice-controls {
             display: flex;
-            flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
+
+        .voice-content {
+            padding: 20px;
+        }
+
+        .participants {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
         .participant {
+            background: var(--bg-card-light);
+            border-radius: 12px;
+            padding: 15px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px;
-            background-color: #2c2c2c;
-            border-radius: 5px;
+            gap: 12px;
         }
-        .participant .name {
-            flex-grow: 1;
-        }
-        .participant .volume-indicator {
-            width: 100px;
-            height: 6px;
-            background-color: #444;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .participant .volume-level {
-            height: 100%;
-            background-color: #28a745;
-            width: 0%;
-            transition: width 0.2s;
-        }
-        .mic-icon {
-            width: 20px;
-            height: 20px;
-            background-color: #444;
+
+        .participant-avatar {
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
         }
-        .mic-icon.active {
-            background-color: #28a745;
+
+        .participant-info {
+            flex: 1;
         }
-        .mic-icon.muted {
-            background-color: #dc3545;
+
+        .participant-name {
+            font-weight: 500;
+            font-size: 1rem;
         }
-        .audio-container {
+
+        .participant-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .mic-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--neon-green);
+        }
+
+        .mic-indicator.muted {
+            background-color: var(--neon-red);
+        }
+
+        /* Chat Box */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background: var(--bg-card-light);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-sender {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            text-align: right;
+            margin-top: 5px;
+        }
+
+        .chat-input-container {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: var(--bg-card-light);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 15px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+        }
+
+        /* Lobby Link */
+        .lobby-link-container {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .lobby-link {
+            background: var(--bg-card-light);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .lobby-link:hover {
+            border-color: var(--neon-blue);
+        }
+
+        /* Loader */
+        #loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 10, 15, 0.8);
             display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
         }
+
+        .loader-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid var(--neon-blue);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Debug Info */
         .debug-info {
-            background: #333;
+            background: var(--bg-card-light);
             padding: 10px;
             border-radius: 5px;
             font-size: 12px;
             margin-top: 10px;
             max-height: 100px;
             overflow-y: auto;
+            font-family: monospace;
         }
+
         .peer-id-display {
-            background: #444;
+            background: var(--bg-card-light);
             padding: 8px;
             border-radius: 5px;
             font-family: monospace;
@@ -246,66 +527,216 @@
             margin-top: 10px;
             text-align: center;
         }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .mt-20 { margin-top: 20px; }
+        .mb-20 { margin-bottom: 20px; }
+        .hidden { display: none; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-10 { gap: 10px; }
+        .gap-15 { gap: 15px; }
+        .gap-20 { gap: 20px; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .players-container {
+                max-width: 100%;
+            }
+            
+            .lobby-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .lobby-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .voice-controls {
+                flex-wrap: wrap;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+            
+            .player-card {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .player-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
     </style>
-    <!-- Include PeerJS library -->
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
-    <div id="loader-overlay"><div class="loader-spinner"></div></div>
+    <div id="loader-overlay">
+        <div class="loader-spinner"></div>
+    </div>
 
     <div class="container">
         <!-- Matchmaking View -->
         <div id="matchmaking-view">
-            <h1>Matchmaking</h1>
-            <div class="player-card">
-                <span>Player_Alpha</span>
-                <button class="invite-btn" id="invite-alpha">Invite</button>
+            <div class="header">
+                <h1 class="neon-text">Find Your Perfect Squad</h1>
+                <p class="subtitle">Connect with players who match your skill level and play style</p>
             </div>
-            <div class="player-card">
-                <span>Gamer_Pro_123</span>
-                <button class="invite-btn" id="invite-pro">Invite</button>
+
+            <div class="players-container">
+                <div class="player-card">
+                    <div class="player-info">
+                        <div class="player-avatar">PA</div>
+                        <div class="player-details">
+                            <h3>Player_Alpha</h3>
+                            <p>
+                                <span class="game-icon">🎯</span> Valorant 
+                                <span class="rank-badge">Diamond 2</span>
+                                <span class="role-badge">Duelist</span>
+                            </p>
+                        </div>
+                    </div>
+                    <button class="btn-neon" id="invite-alpha">
+                        <span>Invite</span>
+                    </button>
+                </div>
+                
+                <div class="player-card">
+                    <div class="player-info">
+                        <div class="player-avatar">GP</div>
+                        <div class="player-details">
+                            <h3>Gamer_Pro_123</h3>
+                            <p>
+                                <span class="game-icon">🎯</span> Valorant 
+                                <span class="rank-badge">Diamond 1</span>
+                                <span class="role-badge">Sentinel</span>
+                            </p>
+                        </div>
+                    </div>
+                    <button class="btn-neon" id="invite-pro">
+                        <span>Invite</span>
+                    </button>
+                </div>
+                
+                <div class="player-card">
+                    <div class="player-info">
+                        <div class="player-avatar">VS</div>
+                        <div class="player-details">
+                            <h3>ValorantStar</h3>
+                            <p>
+                                <span class="game-icon">🎯</span> Valorant 
+                                <span class="rank-badge">Platinum 3</span>
+                                <span class="role-badge">Initiator</span>
+                            </p>
+                        </div>
+                    </div>
+                    <button class="btn-neon" id="invite-star">
+                        <span>Invite</span>
+                    </button>
+                </div>
             </div>
-            <div id="lobby-link-container" style="display: none;">
-                <p>✅ Lobby Created! Click the link below to copy it.</p>
-                <code id="lobby-link" title="Click to copy"></code>
+
+            <div id="lobby-link-container" class="lobby-link-container hidden">
+                <h3 class="neon-text">Lobby Created!</h3>
+                <p class="subtitle">Share this link with your friends to invite them to your lobby</p>
+                <div class="lobby-link" id="lobby-link" title="Click to copy"></div>
             </div>
         </div>
 
         <!-- Lobby View -->
-        <div id="lobby-view" style="display: none;">
-            <h2 id="lobby-title">Chat Lobby</h2>
-            
+        <div id="lobby-view">
+            <div class="lobby-header">
+                <div class="lobby-info">
+                    <h1 class="neon-text" id="lobby-title">Chat Lobby</h1>
+                    <div class="lobby-id" id="lobby-id-display"></div>
+                </div>
+                <div class="lobby-controls">
+                    <button class="btn-secondary" id="copy-link">
+                        Copy Link
+                    </button>
+                    <button class="btn-danger" id="leave-btn">
+                        Leave Lobby
+                    </button>
+                </div>
+            </div>
+
             <!-- Voice Chat Section -->
             <div class="voice-chat-container">
-                <div class="voice-controls">
+                <div class="voice-header">
                     <div class="voice-status">
                         <div class="status-indicator" id="voice-status"></div>
                         <span id="voice-status-text">Voice Disconnected</span>
                     </div>
-                    <button class="voice-btn join" id="join-voice">Join Voice</button>
-                    <button class="voice-btn leave" id="leave-voice" disabled>Leave Voice</button>
-                    <button class="voice-btn" id="mute-mic" style="background-color: #6c757d;">Mute</button>
+                    <div class="voice-controls">
+                        <button class="btn-secondary" id="join-voice">
+                            Join Voice
+                        </button>
+                        <button class="btn-secondary" id="leave-voice" disabled>
+                            Leave Voice
+                        </button>
+                        <button class="btn-secondary" id="mute-mic">
+                            Mute
+                        </button>
+                    </div>
                 </div>
-                <div class="peer-id-display" id="peer-id-display" style="display: none;">
-                    Your Voice ID: <span id="my-peer-id"></span>
+                <div class="voice-content">
+                    <div class="peer-id-display" id="peer-id-display" style="display: none;">
+                        Your Voice ID: <span id="my-peer-id"></span>
+                    </div>
+                    <div class="participants" id="voice-participants">
+                        <div class="participant">
+                            <div class="participant-avatar">You</div>
+                            <div class="participant-info">
+                                <div class="participant-name" id="my-player-name">You</div>
+                                <div class="participant-status">
+                                    <div class="mic-indicator" id="my-mic-status"></div>
+                                    <span>Muted</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="debug-info" id="debug-info"></div>
                 </div>
-                <div class="participants" id="voice-participants">
-                    <!-- Participants will be added here dynamically -->
-                </div>
-                <div class="debug-info" id="debug-info"></div>
             </div>
-            
-            <!-- Hidden audio elements for remote streams -->
-            <div class="audio-container" id="remote-audio-container"></div>
-            
-            <div id="chat-box" class="chat-box"></div>
-            <form id="chat-form" class="chat-input-form">
-                <input type="text" id="message-input" placeholder="Type your message..." autocomplete="off">
-                <button type="submit">Send</button>
-            </form>
-            <button id="leave-btn">Leave Lobby</button>
+
+            <!-- Chat Section -->
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h3>Lobby Chat</h3>
+                    <div class="flex items-center gap-10">
+                        <span id="online-count">1 online</span>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chat-box">
+                    <div class="message received">
+                        <div class="message-sender">System</div>
+                        <div>Welcome to the lobby! Start chatting with your teammates.</div>
+                        <div class="message-time">Just now</div>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="message-input" placeholder="Type your message..." autocomplete="off">
+                    <button class="btn-neon" id="send-message">
+                        Send
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Hidden audio elements for remote streams -->
+    <div class="hidden" id="remote-audio-container"></div>
+
+    <!-- Include PeerJS library -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -326,8 +757,9 @@
 
         let currentLobbyId = null;
         let unsubscribeFromLobby = null;
-        let matchmakingView, lobbyView, chatForm, messageInput, chatBox, loaderOverlay;
+        let matchmakingView, lobbyView, messageInput, chatBox, loaderOverlay;
         const myPlayerId = "Player_" + Math.random().toString(36).substr(2, 5);
+        const myPlayerName = "You";
         
         // PeerJS variables
         let peer = null;
@@ -336,8 +768,13 @@
         let isInVoiceChat = false;
         let isMuted = false;
 
-        function showLoader() { loaderOverlay.style.display = 'flex'; }
-        function hideLoader() { loaderOverlay.style.display = 'none'; }
+        function showLoader() { 
+            loaderOverlay.style.display = 'flex'; 
+        }
+        
+        function hideLoader() { 
+            loaderOverlay.style.display = 'none'; 
+        }
 
         function debugLog(message) {
             console.log(message);
@@ -356,10 +793,9 @@
                 });
                 const lobbyUrl = `${window.location.href.split('#')[0]}#lobby/${lobbyRef.id}`;
                 document.getElementById('lobby-link').textContent = lobbyUrl;
-                document.getElementById('lobby-link-container').style.display = 'block';
+                document.getElementById('lobby-link-container').classList.remove('hidden');
                 window.location.hash = `lobby/${lobbyRef.id}`;
-            } catch (error)
-            {
+            } catch (error) {
                 console.error("CRITICAL ERROR creating lobby:", error);
                 hideLoader();
             }
@@ -368,9 +804,10 @@
         function joinLobby(lobbyId) {
             currentLobbyId = lobbyId;
             matchmakingView.style.display = 'none';
-            lobbyView.style.display = 'block';
+            lobbyView.style.display = 'flex';
             hideLoader();
-            document.getElementById('lobby-title').textContent = `Lobby: ${lobbyId.substring(0, 6)}...`;
+            document.getElementById('lobby-title').textContent = `Lobby: ${lobbyId.substring(0, 8)}`;
+            document.getElementById('lobby-id-display').textContent = `ID: ${lobbyId.substring(0, 8)}`;
 
             if (unsubscribeFromLobby) unsubscribeFromLobby();
             unsubscribeFromLobby = onSnapshot(doc(db, 'lobbies', lobbyId), (docSnap) => {
@@ -401,16 +838,36 @@
             if (unsubscribeFromLobby) unsubscribeFromLobby();
             unsubscribeFromLobby = null;
             currentLobbyId = null;
-            matchmakingView.style.display = 'block';
+            matchmakingView.style.display = 'flex';
             lobbyView.style.display = 'none';
         }
 
         function renderMessages(messages) {
             chatBox.innerHTML = '';
+            
+            // Add system welcome message
+            const welcomeMsg = document.createElement('div');
+            welcomeMsg.classList.add('message', 'received');
+            welcomeMsg.innerHTML = `
+                <div class="message-sender">System</div>
+                <div>Welcome to the lobby! Start chatting with your teammates.</div>
+                <div class="message-time">Just now</div>
+            `;
+            chatBox.appendChild(welcomeMsg);
+            
+            // Add user messages
             messages.forEach(msg => {
                 const messageEl = document.createElement('div');
                 messageEl.classList.add('message', msg.sender === myPlayerId ? 'sent' : 'received');
-                messageEl.innerHTML = `<span class="sender">${msg.sender}</span><div>${msg.text}</div>`;
+                
+                const time = new Date(msg.timestamp?.toDate() || new Date());
+                const timeString = time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                messageEl.innerHTML = `
+                    <div class="message-sender">${msg.sender === myPlayerId ? 'You' : msg.sender}</div>
+                    <div>${msg.text}</div>
+                    <div class="message-time">${timeString}</div>
+                `;
                 chatBox.appendChild(messageEl);
             });
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -581,23 +1038,15 @@
             });
             
             const muteBtn = document.getElementById('mute-mic');
-            const micIcons = document.querySelectorAll('.mic-icon.local');
+            const myMicStatus = document.getElementById('my-mic-status');
             
             if (isMuted) {
                 muteBtn.textContent = 'Unmute';
-                muteBtn.style.backgroundColor = '#dc3545';
-                micIcons.forEach(icon => {
-                    icon.classList.remove('active');
-                    icon.classList.add('muted');
-                });
+                myMicStatus.classList.add('muted');
                 debugLog("🔇 Microphone muted");
             } else {
                 muteBtn.textContent = 'Mute';
-                muteBtn.style.backgroundColor = '#6c757d';
-                micIcons.forEach(icon => {
-                    icon.classList.add('active');
-                    icon.classList.remove('muted');
-                });
+                myMicStatus.classList.remove('muted');
                 debugLog("🎤 Microphone unmuted");
             }
         }
@@ -629,7 +1078,7 @@
             
             // Update UI
             updateVoiceStatus(false);
-            document.getElementById('voice-participants').innerHTML = '';
+            updateVoiceParticipants();
             debugLog("✅ Voice chat left");
         }
         
@@ -654,17 +1103,19 @@
         
         function updateVoiceParticipants() {
             const participantsContainer = document.getElementById('voice-participants');
-            participantsContainer.innerHTML = '';
             
-            // Add local participant
-            const localParticipant = document.createElement('div');
-            localParticipant.className = 'participant local';
-            localParticipant.innerHTML = `
-                <div class="mic-icon local ${isMuted ? 'muted' : 'active'}"></div>
-                <div class="name">${myPlayerId} (You)</div>
-                <div class="volume-indicator"><div class="volume-level" style="width: ${isMuted ? '0' : '30'}%"></div></div>
-            `;
+            // Clear existing participants except the local one
+            const localParticipant = participantsContainer.querySelector('.participant:first-child');
+            participantsContainer.innerHTML = '';
             participantsContainer.appendChild(localParticipant);
+            
+            // Update local participant status
+            const myMicStatus = document.getElementById('my-mic-status');
+            if (isMuted) {
+                myMicStatus.classList.add('muted');
+            } else {
+                myMicStatus.classList.remove('muted');
+            }
             
             // Add remote participant if connected
             const remoteAudioElement = document.getElementById('remote-audio');
@@ -672,9 +1123,14 @@
                 const remoteParticipant = document.createElement('div');
                 remoteParticipant.className = 'participant remote';
                 remoteParticipant.innerHTML = `
-                    <div class="mic-icon active"></div>
-                    <div class="name">Remote Speaker</div>
-                    <div class="volume-indicator"><div class="volume-level" style="width: 50%"></div></div>
+                    <div class="participant-avatar">RP</div>
+                    <div class="participant-info">
+                        <div class="participant-name">Remote Player</div>
+                        <div class="participant-status">
+                            <div class="mic-indicator"></div>
+                            <span>Speaking</span>
+                        </div>
+                    </div>
                 `;
                 participantsContainer.appendChild(remoteParticipant);
             }
@@ -689,31 +1145,49 @@
         function startApp() {
             matchmakingView = document.getElementById('matchmaking-view');
             lobbyView = document.getElementById('lobby-view');
-            chatForm = document.getElementById('chat-form');
             messageInput = document.getElementById('message-input');
             chatBox = document.getElementById('chat-box');
             loaderOverlay = document.getElementById('loader-overlay');
 
             document.getElementById('invite-alpha').addEventListener('click', () => handleInvite('Player_Alpha'));
             document.getElementById('invite-pro').addEventListener('click', () => handleInvite('Gamer_Pro_123'));
+            document.getElementById('invite-star').addEventListener('click', () => handleInvite('ValorantStar'));
             
             // Voice chat event listeners
             document.getElementById('join-voice').addEventListener('click', joinVoiceChat);
             document.getElementById('leave-voice').addEventListener('click', leaveVoiceChat);
             document.getElementById('mute-mic').addEventListener('click', toggleMute);
             
-            chatForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
+            document.getElementById('send-message').addEventListener('click', async () => {
                 if (messageInput.value.trim() === '' || !currentLobbyId) return;
                 await updateDoc(doc(db, 'lobbies', currentLobbyId), {
-                    messages: arrayUnion({ sender: myPlayerId, text: messageInput.value, timestamp: new Date() })
+                    messages: arrayUnion({ 
+                        sender: myPlayerId, 
+                        text: messageInput.value, 
+                        timestamp: new Date() 
+                    })
                 });
                 messageInput.value = '';
+            });
+
+            // Also allow sending message with Enter key
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('send-message').click();
+                }
             });
 
             document.getElementById('lobby-link').addEventListener('click', (e) => {
                 navigator.clipboard.writeText(e.target.textContent);
                 alert("Lobby link copied to clipboard!");
+            });
+            
+            document.getElementById('copy-link').addEventListener('click', () => {
+                if (currentLobbyId) {
+                    const lobbyUrl = `${window.location.href.split('#')[0]}#lobby/${currentLobbyId}`;
+                    navigator.clipboard.writeText(lobbyUrl);
+                    alert("Lobby link copied to clipboard!");
+                }
             });
             
             document.getElementById('leave-btn').addEventListener('click', () => {
@@ -725,7 +1199,6 @@
         }
 
         window.addEventListener('DOMContentLoaded', startApp);
-
     </script>
 </body>
 </html>
